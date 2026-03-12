@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CEP AI Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Unbounded:wght@300;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --yellow: #C8D400;
+    --dark: #1a1a0e;
+    --mid: #22220e;
+    --card: #1e1e0a;
+    --green: #4CAF50;
+    --orange: #FF8C42;
+    --red: #E53935;
+    --blue: #5B8DB8;
+    --text: #e8e0cc;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--dark); color:var(--text); font-family:'Space Mono',monospace; min-height:100vh; }
+
+  header {
+    background:var(--yellow); padding:28px 40px 22px;
+    position:relative; overflow:hidden;
+  }
+  header::before {
+    content:'CEP'; position:absolute; right:-10px; top:-28px;
+    font-family:'Unbounded',sans-serif; font-weight:900;
+    font-size:170px; color:rgba(0,0,0,.06); pointer-events:none; line-height:1;
+  }
+  header h1 {
+    font-family:'Unbounded',sans-serif; font-weight:900;
+    font-size:clamp(18px,3.5vw,28px); color:var(--dark);
+    text-transform:uppercase; letter-spacing:.05em; line-height:1.15;
+  }
+  header p { color:rgba(0,0,0,.55); font-size:11px; margin-top:5px; letter-spacing:.08em; }
+
+  .wrap { max-width:980px; margin:0 auto; padding:32px 20px 80px; }
+
+  .input-section {
+    background:var(--mid); border:1px solid rgba(200,212,0,.2);
+    border-radius:6px; padding:28px 28px 24px; margin-bottom:28px;
+  }
+  .input-section h2 {
+    font-family:'Unbounded',sans-serif; font-size:12px;
+    text-transform:uppercase; letter-spacing:.1em; color:var(--yellow);
+    margin-bottom:20px;
+  }
+  .field-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media(max-width:600px){.field-row{grid-template-columns:1fr;}}
+  .field { display:flex; flex-direction:column; gap:6px; }
+  .field label { font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:rgba(200,212,0,.7); }
+  input[type=text], select, textarea {
+    background:rgba(255,255,255,.05); border:1px solid rgba(200,212,0,.22);
+    border-radius:3px; color:var(--text); font-family:'Space Mono',monospace;
+    font-size:13px; padding:10px 14px; outline:none; transition:border-color .2s; width:100%;
+  }
+  input:focus, select:focus, textarea:focus { border-color:var(--yellow); }
+  select option { background:#22220e; }
+  textarea { resize:vertical; min-height:70px; }
+
+  .generate-btn {
+    margin-top:20px;
+    background:var(--yellow); color:var(--dark); border:none;
+    font-family:'Unbounded',sans-serif; font-size:13px; font-weight:900;
+    text-transform:uppercase; letter-spacing:.08em;
+    padding:14px 36px; border-radius:4px; cursor:pointer;
+    transition:transform .15s, box-shadow .15s;
+    display:inline-flex; align-items:center; gap:10px;
+  }
+  .generate-btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(200,212,0,.35); }
+  .generate-btn:active { transform:translateY(0); }
+  .generate-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; box-shadow:none; }
+
+  .loading {
+    display:none; align-items:center; gap:14px;
+    padding:24px; background:rgba(200,212,0,.06);
+    border:1px solid rgba(200,212,0,.2); border-radius:6px; margin-bottom:28px;
+    font-size:13px; color:rgba(200,212,0,.8);
+  }
+  .loading.show { display:flex; }
+  .spinner {
+    width:22px; height:22px; border:2px solid rgba(200,212,0,.3);
+    border-top-color:var(--yellow); border-radius:50%;
+    animation:spin .7s linear infinite; flex-shrink:0;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  #results { display:none; }
+  #results.show { display:block; }
+
+  .results-header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:20px; flex-wrap:wrap; gap:12px;
+  }
+  .results-header h2 {
+    font-family:'Unbounded',sans-serif; font-size:13px;
+    text-transform:uppercase; letter-spacing:.08em; color:var(--yellow);
+  }
+  .regen-btn {
+    background:transparent; color:var(--yellow);
+    border:1px solid rgba(200,212,0,.35); font-family:'Unbounded',sans-serif;
+    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
+    padding:7px 16px; border-radius:3px; cursor:pointer; transition:all .2s;
+  }
+  .regen-btn:hover { background:rgba(200,212,0,.1); }
+
+  .section-title {
+    font-family:'Unbounded',sans-serif; font-size:11px;
+    text-transform:uppercase; letter-spacing:.1em; color:var(--yellow);
+    margin-bottom:14px; padding-bottom:10px;
+    border-bottom:1px solid rgba(200,212,0,.15);
+  }
+
+  .cep-cards { display:flex; flex-direction:column; gap:14px; margin-bottom:32px; }
+  .cep-card {
+    background:var(--card); border:1px solid rgba(255,255,255,.07);
+    border-radius:5px; padding:20px 22px;
+    transition:border-color .2s; cursor:pointer;
+  }
+  .cep-card:hover { border-color:rgba(200,212,0,.3); }
+  .cep-card.selected { border-color:var(--yellow); background:rgba(200,212,0,.05); }
+
+  .card-top { display:flex; align-items:flex-start; gap:14px; }
+  .card-checkbox {
+    width:18px; height:18px; border:1px solid rgba(200,212,0,.4);
+    border-radius:3px; flex-shrink:0; margin-top:2px;
+    display:flex; align-items:center; justify-content:center;
+    transition:all .2s; font-size:11px; color:var(--dark);
+  }
+  .cep-card.selected .card-checkbox { background:var(--yellow); border-color:var(--yellow); }
+
+  .card-body { flex:1; }
+  .card-num {
+    font-family:'Unbounded',sans-serif; font-size:9px;
+    text-transform:uppercase; letter-spacing:.1em; color:rgba(200,212,0,.6); margin-bottom:5px;
+  }
+  .card-desc { font-size:13px; line-height:1.65; margin-bottom:14px; }
+
+  .card-dims { display:flex; gap:20px; flex-wrap:wrap; margin-bottom:14px; }
+  .dim-item { display:flex; flex-direction:column; gap:3px; }
+  .dim-label { font-size:9px; text-transform:uppercase; letter-spacing:.1em; color:rgba(255,255,255,.4); }
+  .dim-val { font-size:11px; }
+
+  .scores-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .score-badge {
+    display:inline-flex; align-items:center; gap:5px;
+    padding:4px 10px; border-radius:100px; font-size:10px; font-weight:700; border:1px solid;
+  }
+  .score-badge .lbl { font-size:9px; text-transform:uppercase; letter-spacing:.06em; opacity:.7; }
+  .sh { border-color:#4CAF50; color:#4CAF50; }
+  .sm { border-color:#FF8C42; color:#FF8C42; }
+  .sl { border-color:#E53935; color:#E53935; }
+
+  .decision-chip {
+    display:inline-block; padding:5px 14px; border-radius:3px;
+    font-family:'Unbounded',sans-serif; font-size:10px; font-weight:900;
+    text-transform:uppercase; letter-spacing:.05em; margin-top:12px;
+  }
+  .dc-build   { background:#5B8DB8; color:#fff; }
+  .dc-monitor { background:#FF8C42; color:#fff; }
+  .dc-ignore  { background:rgba(255,255,255,.12); color:rgba(255,255,255,.4); }
+
+  .rationale {
+    margin-top:10px; font-size:11px; line-height:1.6;
+    color:rgba(255,255,255,.45); border-top:1px solid rgba(255,255,255,.06); padding-top:10px;
+  }
+
+  .table-wrap { overflow-x:auto; }
+  .cep-table { width:100%; border-collapse:collapse; font-size:12px; min-width:560px; }
+  .cep-table th {
+    background:rgba(200,212,0,.1); color:var(--yellow);
+    font-family:'Unbounded',sans-serif; font-size:9px;
+    text-transform:uppercase; letter-spacing:.1em;
+    padding:10px 14px; text-align:left; border-bottom:1px solid rgba(200,212,0,.25);
+  }
+  .cep-table td { padding:11px 14px; border-bottom:1px solid rgba(255,255,255,.05); vertical-align:middle; line-height:1.5; }
+  .cep-table tr:hover td { background:rgba(255,255,255,.025); }
+
+  .badge { display:inline-block; padding:3px 10px; border-radius:100px; font-size:10px; font-weight:700; border:1px solid; }
+  .bh { border-color:#4CAF50; color:#4CAF50; background:rgba(76,175,80,.12); }
+  .bm { border-color:#FF8C42; color:#FF8C42; background:rgba(255,140,66,.12); }
+  .bl { border-color:#E53935; color:#E53935; background:rgba(229,57,53,.12); }
+
+  .chip {
+    display:inline-block; padding:5px 11px; border-radius:100px; font-size:11px;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.15);
+    cursor:pointer; transition:all .2s; user-select:none;
+  }
+  .chip:hover { border-color:var(--yellow); color:var(--yellow); }
+  .chip.active { background:var(--yellow); color:var(--dark); border-color:var(--yellow); font-weight:700; }
+  .comp-analysis {
+    margin-top:10px; font-size:11px; line-height:1.65;
+    color:rgba(255,200,0,.6); border-top:1px solid rgba(200,212,0,.1);
+    padding-top:10px;
+  }
+  .comp-analysis strong { color:rgba(200,212,0,.9); font-size:10px; text-transform:uppercase; letter-spacing:.08em; }
+  .error-box {
+    display:none; background:rgba(229,57,53,.1); border:1px solid rgba(229,57,53,.35);
+    border-radius:4px; padding:14px 18px; color:#E53935; font-size:12px; margin-bottom:20px;
+  }
+  .error-box.show { display:block; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CEP AI Builder</h1>
+  <p>Для маркетплейсу — введіть категорію, Claude згенерує CEPs і перевірить конкурентів</p>
+</header>
+
+<div class="wrap">
+
+  <div class="input-section">
+    <h2>Задайте категорію</h2>
+    <div class="field-row">
+      <div class="field">
+        <label>Назва категорії *</label>
+        <input type="text" id="cat-name" placeholder="напр. Протеїнові батончики, CRM, Кросівки…" />
+      </div>
+      <div class="field">
+        <label>Аудиторія</label>
+        <select id="cat-audience">
+          <option value="">— необов'язково —</option>
+          <option>B2C — масовий покупець маркетплейсу</option>
+          <option>B2C — преміум покупець</option>
+          <option>B2B — малий бізнес (перепродаж/закупівлі)</option>
+          <option>B2B — корпоративні закупівлі</option>
+          <option>B2B2C — продавці на маркетплейсі</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row" style="margin-top:14px;">
+      <div class="field">
+        <label>Контекст споживання (необов'язково)</label>
+        <textarea id="cat-consumption" placeholder="напр. під пиво, під час перегляду фільму, після тренування…"></textarea>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+          <span class="chip" onclick="addChip(this)">🍺 під пиво/вино</span>
+          <span class="chip" onclick="addChip(this)">☕ з кавою</span>
+          <span class="chip" onclick="addChip(this)">📺 під серіал</span>
+          <span class="chip" onclick="addChip(this)">🏋️ після тренування</span>
+          <span class="chip" onclick="addChip(this)">🚌 в дорозі</span>
+          <span class="chip" onclick="addChip(this)">🎉 на вечірці</span>
+          <span class="chip" onclick="addChip(this)">💻 під час роботи</span>
+          <span class="chip" onclick="addChip(this)">🌿 на природі</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Додатковий контекст (необов'язково)</label>
+        <textarea id="cat-context" placeholder="напр. Преміум сегмент, Україна"></textarea>
+      </div>
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label>Конкуренти-маркетплейси (необов'язково, через кому)</label>
+      <input type="text" id="cat-competitors" placeholder="напр. Rozetka, Prom, OLX, Amazon, COMFY…" />
+      <div style="font-size:10px; color:rgba(200,212,0,.5); margin-top:6px; line-height:1.5;">
+        Claude перевірить як конкуренти-маркетплейси просувають цю категорію і де є вільне місце для вас
+      </div>
+    </div>
+    <button class="generate-btn" id="gen-btn" onclick="generate()">
+      <span id="btn-icon">⚡</span>
+      <span id="btn-text">Генерувати CEPs</span>
+    </button>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <span>Claude аналізує категорію та генерує CEPs…</span>
+  </div>
+
+  <div class="error-box" id="error-box"></div>
+
+  <div id="results">
+    <div class="results-header">
+      <h2 id="results-title">CEPs для: —</h2>
+      <button class="regen-btn" onclick="generate()">↺ Перегенерувати</button>
+    </div>
+
+    <div class="section-title">Варіанти CEPs</div>
+    <div class="cep-cards" id="cep-cards"></div>
+
+    <div class="section-title">Таблиця рішень</div>
+    <div class="table-wrap">
+      <table class="cep-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>CEP — ситуація</th>
+            <th>Common</th>
+            <th>Credible</th>
+            <th>Competitive</th>
+            <th>Рішення</th>
+          </tr>
+        </thead>
+        <tbody id="cep-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+async function generate() {
+  const name = document.getElementById('cat-name').value.trim();
+  if (!name) { alert('Введіть назву категорії'); return; }
+
+  const audience = document.getElementById('cat-audience').value;
+  const context  = document.getElementById('cat-context').value.trim();
+  const consumption = document.getElementById('cat-consumption').value.trim();
+  const competitors = document.getElementById('cat-competitors').value.trim();
+
+  document.getElementById('gen-btn').disabled = true;
+  document.getElementById('btn-text').textContent = 'Генерую…';
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('error-box').classList.remove('show');
+
+  const prompt = `Ти експерт з маркетингу та Category Entry Points (CEPs) за методологією Байрона Шарпа. Контекст: ми маркетплейс, що продає різні категорії товарів. CEPs — це ситуації, коли покупець думає про покупку в цій категорії і може зайти на маркетплейс.
+
+Категорія: ${name}
+${audience ? `Аудиторія: ${audience}` : ''}
+${context  ? `Контекст: ${context}` : ''}
+${consumption ? `Контекст споживання (важливо враховувати у CEPs): ${consumption}` : ''}
+
+Згенеруй 6 різних CEP для цієї категорії. Кожен CEP — конкретна ситуація/момент, коли споживач думає про категорію.
+
+Для кожного CEP:
+- desc: опис ситуації (1-2 речення, конкретно, з деталями Why+When+Where+Whom)
+- why: мотивація (коротко)
+- when: таймінг (коротко)
+- where: локація (коротко)
+- common: High/Med/Low — наскільки часто зустрічається
+- credible: High/Med/Low — наскільки типовий бренд може бути релевантний
+- competitive: High/Med/Low — конкуренція за цю точку входу
+- decision: BUILD/MONITOR/IGNORE
+- rationale: 1 речення чому
+
+Логіка: BUILD = часто + релевантно + мало конкурентів. IGNORE = рідко + нерелевантно + багато конкурентів.
+${competitors ? `
+Конкуренти-маркетплейси: ${competitors}
+Важливо: ми самі є маркетплейсом, наші конкуренти — це інші маркетплейси (не бренди товарів).
+Для кожного CEP додай поле competitors_analysis (2-3 речення):
+- Як конкуренти-маркетплейси просувають цю категорію в даному CEP (реклама, підбірки, email, push, SEO тощо)
+- Де є незайнята ніша або слабке місце конкурентів у цьому CEP
+- Чи варто нашому маркетплейсу активно інвестувати в цей CEP з огляду на конкурентну активність` : ''}
+
+Відповідь ТІЛЬКИ JSON-масив, без markdown, без пояснень перед чи після:
+[{"desc":"...","why":"...","when":"...","where":"...","common":"High","credible":"High","competitive":"Low","decision":"BUILD","rationale":"...","competitors_analysis":"якщо конкуренти задані — аналіз, інакше порожній рядок"}]`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const raw = data.content.map(b => b.text || '').join('');
+    const clean = raw.replace(/```json|```/g, '').trim();
+    // Extract JSON array robustly — find [ ... ] even if trailing text exists
+    const start = clean.indexOf('[');
+    let jsonStr = clean.slice(start);
+    // If JSON is truncated, close it gracefully
+    let ceps;
+    try {
+      ceps = JSON.parse(jsonStr);
+    } catch(e) {
+      // Try to recover: find last complete object
+      const lastComplete = jsonStr.lastIndexOf('},');
+      if (lastComplete > 0) {
+        jsonStr = jsonStr.slice(0, lastComplete + 1) + ']';
+        ceps = JSON.parse(jsonStr);
+      } else {
+        throw e;
+      }
+    }
+
+    renderResults(name, ceps);
+  } catch(e) {
+    document.getElementById('error-box').textContent = 'Помилка: ' + e.message + '. Спробуйте ще раз.';
+    document.getElementById('error-box').classList.add('show');
+  } finally {
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('gen-btn').disabled = false;
+    document.getElementById('btn-text').textContent = 'Генерувати CEPs';
+  }
+}
+
+function renderResults(catName, ceps) {
+  document.getElementById('results-title').textContent = 'CEPs для: ' + catName;
+
+  const sc = v => v === 'High' ? 'sh' : v === 'Med' ? 'sm' : 'sl';
+  const dc = d => d === 'BUILD' ? 'dc-build' : d === 'MONITOR' ? 'dc-monitor' : 'dc-ignore';
+  const bc = v => v === 'High' ? 'bh' : v === 'Med' ? 'bm' : 'bl';
+
+  document.getElementById('cep-cards').innerHTML = ceps.map((c, i) => `
+    <div class="cep-card" id="card-${i}" onclick="toggleCard(${i})">
+      <div class="card-top">
+        <div class="card-checkbox" id="cb-${i}"></div>
+        <div class="card-body">
+          <div class="card-num">CEP ${i+1}</div>
+          <div class="card-desc">${c.desc}</div>
+          <div class="card-dims">
+            <div class="dim-item"><div class="dim-label">Навіщо</div><div class="dim-val">${c.why}</div></div>
+            <div class="dim-item"><div class="dim-label">Коли</div><div class="dim-val">${c.when}</div></div>
+            <div class="dim-item"><div class="dim-label">Де</div><div class="dim-val">${c.where}</div></div>
+          </div>
+          <div class="scores-row">
+            <span class="score-badge ${sc(c.common)}"><span class="lbl">Common</span>${c.common}</span>
+            <span class="score-badge ${sc(c.credible)}"><span class="lbl">Credible</span>${c.credible}</span>
+            <span class="score-badge ${sc(c.competitive)}"><span class="lbl">Competitive</span>${c.competitive}</span>
+          </div>
+          <div class="decision-chip ${dc(c.decision)}">${c.decision}</div>
+          <div class="rationale">${c.rationale}</div>
+          ${c.competitors_analysis ? `<div class="comp-analysis"><strong>🔍 Конкуренти</strong><br>${c.competitors_analysis}</div>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('cep-tbody').innerHTML = ceps.map((c, i) => `
+    <tr>
+      <td style="color:rgba(200,212,0,.6);font-family:'Unbounded',sans-serif;font-size:10px;">CEP ${i+1}</td>
+      <td style="max-width:240px;line-height:1.55;">${c.desc}</td>
+      <td><span class="badge ${bc(c.common)}">${c.common}</span></td>
+      <td><span class="badge ${bc(c.credible)}">${c.credible}</span></td>
+      <td><span class="badge ${bc(c.competitive)}">${c.competitive}</span></td>
+      <td><span class="decision-chip ${dc(c.decision)}" style="padding:4px 12px;font-size:10px;">${c.decision}</span></td>
+    </tr>`).join('');
+
+  document.getElementById('results').classList.add('show');
+  document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function toggleCard(i) {
+  const card = document.getElementById('card-' + i);
+  card.classList.toggle('selected');
+  document.getElementById('cb-' + i).textContent = card.classList.contains('selected') ? '✓' : '';
+}
+
+function addChip(el) {
+  el.classList.toggle('active');
+  const textarea = document.getElementById('cat-consumption');
+  const label = el.textContent.replace(/^[^ ]+ /, '').trim(); // strip emoji
+  const current = textarea.value.trim();
+  if (el.classList.contains('active')) {
+    textarea.value = current ? current + ', ' + label : label;
+  } else {
+    const parts = current.split(', ').filter(p => p !== label);
+    textarea.value = parts.join(', ');
+  }
+}
+</script>
+</body>
+</html>
